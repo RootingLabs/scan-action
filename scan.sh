@@ -74,6 +74,16 @@ emit "status" "${status}"
 echo "RootingLabs: downloading SARIF to ${SARIF_FILE}"
 curl -fsS "${auth[@]}" "${API_URL}/v1/scans/${scan_id}/sarif" -o "${SARIF_FILE}"
 
+# Record this run on the Analyses timeline (best-effort; never fails the build).
+run_detail=$(curl -fsS "${auth[@]}" "${API_URL}/v1/scans/${scan_id}" 2>/dev/null || echo '{}')
+run_findings=$(echo "${run_detail}" | jq '[.findings[]?] | length' 2>/dev/null || echo 0)
+run_status="completed"
+[[ "${status}" == "completed" ]] || run_status="failed"
+curl -fsS "${auth[@]}" "${json[@]}" -X POST \
+  -d "$(jq -nc --arg s "${TARGET}" --arg st "${run_status}" --argjson n "${run_findings:-0}" \
+    '{family:"web_analysis", status:$st, source:$s, findings_count:$n, detail:"scan-action run"}')" \
+  "${API_URL}/v1/analyses" >/dev/null 2>&1 || true
+
 if [[ "${status}" != "completed" ]]; then
   echo "RootingLabs: scan did not complete (status=${status})" >&2
   exit 1
