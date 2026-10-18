@@ -49,6 +49,28 @@ A ready-to-copy workflow is in [`examples/github-workflow.yml`](examples/github-
 | `sarif-file` | `rootinglabs.sarif` | |
 | `wait` | `true` | `false` queues and returns immediately |
 | `timeout-minutes` | `60` | |
+| `fix-prs` | `false` | `true` opens a fix PR per fixable finding (see below) |
+| `fix-base` | current branch | base branch for the fix PRs |
+| `fix-prs-max` | `10` | cap on fix PRs opened per run |
+
+## Authentication
+
+`token` is your RootingLabs API token. **For CI, mint a scoped API key** (prefix
+`rlk_`) in the dashboard or via `POST /v1/api-keys`: it does not expire, is
+revocable, and is limited to `scans:create` + `scans:read` (it cannot touch
+billing or your account). Store it as the `ROOTINGLABS_TOKEN` secret. A dashboard
+session JWT also works but expires.
+
+## Fix-to-PR (optional)
+
+With `fix-prs: true`, after the scan the action fetches each fixable finding's
+`fix_before` → `fix_after` anchors, applies them to your checked-out code, and
+opens one PR per finding **using your workflow's own `GITHUB_TOKEN`** —
+RootingLabs never authenticates to your GitHub. Requirements:
+
+- `actions/checkout` must run before the action.
+- the job must grant `contents: write` and `pull-requests: write`.
+- anchors that no longer match the current code are skipped (never force-applied).
 
 ## Outputs
 

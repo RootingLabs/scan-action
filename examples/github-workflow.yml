@@ -1,5 +1,5 @@
 # Drop this in the CLIENT repo at .github/workflows/rootinglabs.yml
-# Needs one secret: ROOTINGLABS_TOKEN (generate it in your RootingLabs dashboard).
+# Needs one secret: ROOTINGLABS_TOKEN (mint a scoped rlk_ API key in your dashboard).
 name: RootingLabs pentest
 
 on:
@@ -12,13 +12,16 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write          # write: needed only when fix-prs is enabled
   security-events: write   # required for upload-sarif
+  pull-requests: write     # needed only when fix-prs is enabled
 
 jobs:
   pentest:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4   # required when fix-prs is enabled
+
       - name: Run RootingLabs scan
         id: scan
         uses: RootingLabs/scan-action@v1
@@ -28,6 +31,7 @@ jobs:
           scan-mode: standard
           fail-on: high          # fail the build on high/critical; 'none' to only report
           sarif-file: rootinglabs.sarif
+          fix-prs: false         # set true to open a fix PR per fixable finding
 
       # Show findings in the Security tab and annotate the PR.
       - name: Upload SARIF

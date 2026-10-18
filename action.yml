@@ -36,6 +36,18 @@ inputs:
     description: "Maximum minutes to wait for a scan to finish."
     required: false
     default: "60"
+  fix-prs:
+    description: "Open a fix PR per fixable finding using the caller's GITHUB_TOKEN (needs contents + pull-requests write)."
+    required: false
+    default: "false"
+  fix-base:
+    description: "Base branch for fix PRs (defaults to the checked-out branch)."
+    required: false
+    default: ""
+  fix-prs-max:
+    description: "Maximum number of fix PRs to open in one run."
+    required: false
+    default: "10"
 
 outputs:
   scan-id:
@@ -63,3 +75,16 @@ runs:
         RL_WAIT: ${{ inputs.wait }}
         RL_TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
       run: bash "${{ github.action_path }}/scan.sh"
+
+    - id: fixes
+      if: ${{ inputs.fix-prs == 'true' }}
+      shell: bash
+      env:
+        RL_API_URL: ${{ inputs.api-url }}
+        RL_TOKEN: ${{ inputs.token }}
+        RL_SCAN_ID: ${{ steps.run.outputs.scan-id }}
+        RL_FIX_BASE: ${{ inputs.fix-base }}
+        RL_FIX_PRS_MAX: ${{ inputs.fix-prs-max }}
+        GITHUB_TOKEN: ${{ github.token }}
+        ACTION_DIR: ${{ github.action_path }}
+      run: bash "${{ github.action_path }}/fix-prs.sh"
