@@ -1,0 +1,38 @@
+# Drop this in the CLIENT repo at .github/workflows/rootinglabs.yml
+# Needs one secret: ROOTINGLABS_TOKEN (generate it in your RootingLabs dashboard).
+name: RootingLabs pentest
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "URL to test"
+        required: true
+
+permissions:
+  contents: read
+  security-events: write   # required for upload-sarif
+
+jobs:
+  pentest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run RootingLabs scan
+        id: scan
+        uses: RootingLabs/scan-action@v1
+        with:
+          token: ${{ secrets.ROOTINGLABS_TOKEN }}
+          target: ${{ github.event.inputs.target || 'https://staging.example.com' }}
+          scan-mode: standard
+          fail-on: high          # fail the build on high/critical; 'none' to only report
+          sarif-file: rootinglabs.sarif
+
+      # Show findings in the Security tab and annotate the PR.
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif-file }}
+          category: rootinglabs

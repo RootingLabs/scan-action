@@ -1,0 +1,65 @@
+name: "RootingLabs Pentest"
+description: "Run an autonomous Web/API pentest on RootingLabs and emit SARIF for GitHub code scanning."
+author: "RootingLabs"
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  token:
+    description: "RootingLabs API token (store as a repository secret)."
+    required: true
+  target:
+    description: "URL to test (its host is frozen as the scope at launch)."
+    required: true
+  api-url:
+    description: "RootingLabs API base URL."
+    required: false
+    default: "https://rootinglabs.com"
+  scan-mode:
+    description: "quick | standard | deep."
+    required: false
+    default: "standard"
+  fail-on:
+    description: "Minimum severity that fails the job: critical | high | medium | low | none."
+    required: false
+    default: "high"
+  sarif-file:
+    description: "Where to write the SARIF file."
+    required: false
+    default: "rootinglabs.sarif"
+  wait:
+    description: "Wait for the scan to finish (true) or return immediately after queueing (false)."
+    required: false
+    default: "true"
+  timeout-minutes:
+    description: "Maximum minutes to wait for a scan to finish."
+    required: false
+    default: "60"
+
+outputs:
+  scan-id:
+    description: "The id of the scan that was created."
+    value: ${{ steps.run.outputs.scan-id }}
+  status:
+    description: "Final scan status (completed | failed | stopped | queued)."
+    value: ${{ steps.run.outputs.status }}
+  sarif-file:
+    description: "Path to the SARIF file that was written."
+    value: ${{ steps.run.outputs.sarif-file }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: run
+      shell: bash
+      env:
+        RL_TOKEN: ${{ inputs.token }}
+        RL_TARGET: ${{ inputs.target }}
+        RL_API_URL: ${{ inputs.api-url }}
+        RL_SCAN_MODE: ${{ inputs.scan-mode }}
+        RL_FAIL_ON: ${{ inputs.fail-on }}
+        RL_SARIF_FILE: ${{ inputs.sarif-file }}
+        RL_WAIT: ${{ inputs.wait }}
+        RL_TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+      run: bash "${{ github.action_path }}/scan.sh"
